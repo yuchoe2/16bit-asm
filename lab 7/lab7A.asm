@@ -1,0 +1,174 @@
+;Yuna Choe
+;yuchoe@ucsc.edu
+;lab #: 6
+;Section: 5
+
+	.ORIG	x3000
+	LEA	R0	HELLO
+	TRAP	x22
+START	LD	R2, 	INT
+	LD	R3, 	FLAG
+	AND	R0,R0,	0
+	AND	R1,R1,	0
+	AND	R6,R6,	0
+	LD	R6,	DIGIT
+	LEA	R0, 	ASK
+	TRAP	x22	;shows ask string
+GET	GETC	;get the first digit and put in R0
+	PUTC
+	ADD	R1,R0,	0	;keeping a backup of user input
+
+LF_CHK	LD	R7,	NEG_LF ; loading NEG_LF into register 7
+	ADD	R0,R0,	R7
+	BRnp	NEG_CHK	;if char is not LF
+	BRz	FLAG_CHK	; if char is LF, go to 2sc	
+
+NEG_CHK	AND	R0,R0,	0
+	ADD	R0,R1,	0	;restoring register 0 as user input from register 1
+	LD	R7,	NEG_MIN
+	ADD	R0,R0,	R7	;checking if char is '-'
+	BRz	FLAG_SWITCH
+	BRp	DIG_SUB
+
+
+FLAG_SWITCH	ADD	R3,R3,	1
+	BR	GET
+
+DIG_SUB	LD	R4,	DIG_VAR
+	ADD	R6,R1,	R4	;using backup user input and minus 48
+
+	AND	R0,R0,	0		;clearing register 0 to keep orginal int
+	ADD	R0,R2,	0		;let register 0 be the original int
+	AND	R7,R7,	0		;clearing reg 7
+	ADD	R7,R7,	9	;making the mult counter = 10(9-0)
+	LD	R5,	MC_SUB
+	
+MULT_C	ADD	R2,R2,	R0	;INT = INT +ORIGINAL INT
+	ADD	R7,R7,	R5	;decrementing multiply counter
+	BRp	MULT_C
+	BRz	FIN_INT
+
+FIN_INT	ADD	R2,R2,	R6	;adding intx10 + digit
+	BR	GET
+
+FLAG_CHK	LD	R7,	NEG_FLAG
+	ADD	R3,R3,	R7
+	BRz	TWOSC
+	BRn	SMASK
+
+TWOSC	AND	R6,R6,	0
+	ADD	R6,R2,	R2	;2X INT
+	LD	R5,	NEG_INT
+
+FLIP_INT	ADD	R2,R2,	R5
+	ADD	R6,R6,	R5
+	BRp	FLIP_INT
+	BRz	TWOSC_1
+
+TWOSC_1	ADD	R2,R2,	1
+	BR	SMASK
+
+SMASK	LD	R3,	COUNT
+MASKK	LEA	R1,	MASK
+	;ST	R1, 	STMASK
+	LD	R4,	COUNT
+	LD	R5,	COUNT_CHK
+
+CHK_COUNT	LDR	R6,R1,	0
+	ADD	R4,R4,	0
+	BRn	RET	;start frm the very beginning
+	BRzp	DIGIT_2
+	
+DIGIT_2	AND	R7,R2,	R6 	;INT PLUS MASK
+
+CHK_DIG	BRp	PRINT_1
+	BRz	PRINT_Z
+
+PRINT_Z	LEA	R0,	PRINT0
+	TRAP	X22
+	BR	INCR
+
+PRINT_1	LEA	R0,	PRINT1
+	TRAP	X22
+	BR	INCR
+
+INCR	ADD	R1,R1,	1
+	ADD	R4,R4,	-1
+	BR	CHK_COUNT
+
+SHIFT_ASK	LEA	R0	SHIFT
+	AND	R3,R6	0	;PUT DIGIT INTO R3
+	ST	R4	R3	;COPY DIGIT INTO R4
+	GETC
+	TRAP	x21
+	AND	R2,R0	0	;SHIFT # INTO R2
+	ST	R1	R2	;SHIFT # COPY
+	
+SHIFT_L	ADD	R3,R3	R3	;DIGIT + DIGIT INTO R3 (SAME REGISTER)
+	ADD	R2,R2	-1	;SUBTRACT 1 FROM SHIFT
+	BRp	SHIFT_L
+	BRnz	PRINT_SHIFT
+
+PRINT_SHIFT	ST	R3	R7
+		JSR	SMASK
+		BR	SHIFT_R		
+
+SHIFT_R	LD	R0	NUM
+	LD	R2	COUNT
+	AND	R0,R0	0
+	ADD	R0,R1	NUM	;SUBTRACT R0 FROM THE DIGIT
+	NOT	R0	R0
+	ADD	R2,R2	1
+	ADD	R3,R3	R0	;SUBTRACT THE 2^SHIFT FROM DIGIT
+	ST
+	BRp	SHIFT_R	
+	BRnz	;PRINT OUT THE STUFF IN R0
+	BR	SHIFT_R
+	
+	
+
+DONE	HALT
+
+HELLO	.STRINGZ	"Hello!\n"
+ASK	.STRINGZ	"\nInsert a integer or enter X to quit.\n"
+SHIFT	.STRINGZ	"\nShift how many spaces?\n"
+COUNT1	.FILL	#0000
+INT	.FILL	x0000
+FLAG	.FILL	x0000
+NEG_MIN	.FILL   #-45
+NEG_LF	.FILL   #-10
+DIGIT	.FILL	X0000
+DIG_VAR	.FILL	#-48
+X_CHECK	.FILL	#-10
+MC_SUB	.FILL	#-1
+NEG_FLAG	.FILL	#-1
+NEG_INT	.FILL	#-1
+MASK	.FILL	X8000
+	.FILL	X4000
+	.FILL	X2000
+	.FILL	X1000
+	.FILL	X800
+	.FILL	X400
+	.FILL	X200
+	.FILL	X100
+	.FILL	X80
+	.FILL	X40
+	.FILL	X20
+	.FILL	X10
+	.FILL	X8
+	.FILL	X4
+	.FILL	X2
+	.FILL	X1
+COUNT	.FILL	#15
+COUNT_CHK	.FILL	#-1
+PRINT0	.STRINGZ	"0"
+PRINT1	.STRINGZ	"1"
+EXIT	.FILL	#-88
+
+NUM	.FILL	#1
+	.FILL	#2
+	.FILL	#4
+	.FILL	#16
+	.FILL	#32
+	.FILL	#64
+	.END
